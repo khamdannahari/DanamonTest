@@ -7,6 +7,8 @@
     <string name="role">Role</string>
     <string name="register">Register</string>
     <string name="register_success">Registration Successful</string>
+    <string name="login_success">Websocket Message Here!\nLogin Successful</string>
+    <string name="login">Login</string>
 
     <string-array name="role_options">
         <item>Admin</item>

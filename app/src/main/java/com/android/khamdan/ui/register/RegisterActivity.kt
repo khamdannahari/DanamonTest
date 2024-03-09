@@ -37,8 +37,9 @@ class RegisterActivity : AppCompatActivity() {
         setupActionBar()
         setupRoleSpinner()
         observeErrorMessageEvent()
-        observeOpenReviewEvent()
-        setupFormValidationAndRegister()
+        observeSuccessRegisterEvent()
+        setupFormValidation()
+        setupRegisterButton()
     }
 
     private fun setupActionBar() {
@@ -62,7 +63,7 @@ class RegisterActivity : AppCompatActivity() {
             Snackbar.make(binding.root, it, Snackbar.LENGTH_SHORT).show()
         }
 
-    private fun setupFormValidationAndRegister() {
+    private fun setupFormValidation() {
         val usernameObservable = binding.editTextUsername.textChanges()
             .map { it.toString() }
         val emailObservable = binding.editTextEmail.textChanges()
@@ -86,18 +87,25 @@ class RegisterActivity : AppCompatActivity() {
             )
         }.subscribeBy { state -> viewModel.updateState(state) }
             .addTo(disposables)
+    }
 
+    private fun setupRegisterButton() {
         binding.buttonRegister.setOnClickListener {
             viewModel.register()
         }
     }
 
-    private fun observeOpenReviewEvent() = state
+    private fun observeSuccessRegisterEvent() = state
         .map { it.successRegisterEvent }
         .safeCollectEvent(this) {
             Toast.makeText(this, R.string.register_success, Toast.LENGTH_SHORT).show()
             finish()
         }
+
+    override fun onSupportNavigateUp(): Boolean {
+        finish()
+        return true
+    }
 
     override fun onDestroy() {
         super.onDestroy()
