@@ -25,6 +25,8 @@
         </activity>
 
         <activity android:name=".ui.register.RegisterActivity"/>
+        <activity android:name=".ui.home.HomeActivity"/>
+        <activity android:name=".ui.edituser.EditUserActivity"/>
     </application>
 
 </manifest>

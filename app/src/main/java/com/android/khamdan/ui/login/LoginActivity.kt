@@ -7,9 +7,10 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.android.khamdan.R
 import com.android.khamdan.databinding.ActivityLoginBinding
+import com.android.khamdan.ui.home.HomeActivity
 import com.android.khamdan.ui.register.RegisterActivity
 import com.android.khamdan.util.FlowViewExt.safeCollectEvent
-import com.google.android.material.snackbar.Snackbar
+import com.android.khamdan.util.FlowViewExt.safeCollectUnique
 import com.jakewharton.rxbinding4.widget.textChanges
 import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.rxjava3.core.Observable
@@ -34,14 +35,14 @@ class LoginActivity : AppCompatActivity() {
     private val state: StateFlow<LoginState> by lazy { viewModel.loginState }
     private val disposables = CompositeDisposable()
 
-    private lateinit var webSocketClient: WebSocketClient
+    private var webSocketClient: WebSocketClient? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         setupActionBar()
+        observeCurrentUser()
         observeErrorMessageEvent()
-        observeSuccessLoginEvent()
         setupFormValidation()
         setupLoginButton()
         setupRegisterText()
@@ -55,8 +56,28 @@ class LoginActivity : AppCompatActivity() {
     private fun observeErrorMessageEvent() = state
         .map { it.errorMessageEvent }
         .safeCollectEvent(this) {
-            Snackbar.make(binding.root, it, Snackbar.LENGTH_LONG).show()
+            Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
         }
+
+    private fun observeCurrentUser() = state
+        .map { it.currentUser }
+        .safeCollectUnique(this) { currentUser ->
+            if (currentUser != null) {
+                openHomeActivity()
+                try {
+                    webSocketClient?.send(getString(R.string.user_logged))
+                } catch (exception: Exception) {
+                    exception.printStackTrace()
+                }
+            }
+        }
+
+    private fun openHomeActivity() {
+        startActivity(
+            Intent(this, HomeActivity::class.java)
+        )
+        finish()
+    }
 
     private fun setupFormValidation() {
         val emailObservable = binding.editTextEmail.textChanges()
@@ -72,8 +93,9 @@ class LoginActivity : AppCompatActivity() {
                 email = email,
                 password = password,
             )
-        }.subscribeBy { state -> viewModel.updateState(state) }
-            .addTo(disposables)
+        }.subscribeBy { state ->
+            viewModel.updateForm(state.email, state.password)
+        }.addTo(disposables)
     }
 
     private fun setupLoginButton() {
@@ -101,25 +123,21 @@ class LoginActivity : AppCompatActivity() {
                 runOnUiThread {
                     Toast.makeText(
                         this@LoginActivity,
-                        message.orEmpty(), Toast.LENGTH_SHORT
+                        getString(R.string.websocket_message)
+                            .plus(message.orEmpty()),
+                        Toast.LENGTH_LONG
                     ).show()
                 }
             }
 
         }
 
-        webSocketClient.connect()
+        webSocketClient?.connect()
     }
-
-    private fun observeSuccessLoginEvent() = state
-        .map { it.successLoginEvent }
-        .safeCollectEvent(this) {
-            webSocketClient.send(getString(R.string.login_success))
-        }
 
     override fun onDestroy() {
         super.onDestroy()
         disposables.dispose()
-        webSocketClient.close()
+        webSocketClient?.close()
     }
 }

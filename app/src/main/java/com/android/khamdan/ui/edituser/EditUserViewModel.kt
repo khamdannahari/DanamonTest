@@ -1,4 +1,4 @@
-package com.android.khamdan.ui.register
+package com.android.khamdan.ui.edituser
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,32 +14,41 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class RegisterViewModel @Inject constructor(
+class EditUserViewModel @Inject constructor(
     private val userRepository: UserRepository
 ) : ViewModel() {
 
-    private val _registerState = MutableStateFlow(RegisterState())
-    val registerState: StateFlow<RegisterState> get() = _registerState.asStateFlow()
+    private val _editUserState = MutableStateFlow(EditUserState())
+    val editUserState: StateFlow<EditUserState> get() = _editUserState.asStateFlow()
 
-    fun updateState(state: RegisterState) {
-        _registerState.value = state
+    fun setUser(user: User) {
+        _editUserState.update {
+            it.copy(
+                id = if (user.id > 0) user.id else it.id,
+                username = user.username,
+                email = user.email,
+                password = user.password,
+                role = user.role,
+            )
+        }
     }
 
-    fun register() {
-        if (_registerState.value.isDataValid) {
-            insertUser()
+    fun update() {
+        if (_editUserState.value.isDataValid) {
+            updateUser()
         } else {
-            _registerState.update {
+            _editUserState.update {
                 it.copy(errorMessageEvent = it.generatedErrorMessageEvent)
             }
         }
     }
 
-    private fun insertUser() {
+    private fun updateUser() {
         viewModelScope.launch {
-            _registerState.value.run {
-                userRepository.insertUser(
+            _editUserState.value.run {
+                userRepository.updateUser(
                     User(
+                        id = id,
                         username = username,
                         email = email,
                         password = password,
@@ -47,11 +56,11 @@ class RegisterViewModel @Inject constructor(
                     )
                 ).collect { result ->
                     result.onSuccess {
-                        _registerState.update {
-                            it.copy(successRegisterEvent = Event(true))
+                        _editUserState.update {
+                            it.copy(successUpdateEvent = Event(true))
                         }
                     }.onFailure { resultFailure ->
-                        _registerState.update {
+                        _editUserState.update {
                             it.copy(errorMessageEvent = Event(resultFailure.message))
                         }
                     }
@@ -59,4 +68,5 @@ class RegisterViewModel @Inject constructor(
             }
         }
     }
+
 }
