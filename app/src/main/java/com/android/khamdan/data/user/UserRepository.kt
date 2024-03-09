@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.take
 
 class UserRepository(private val userDao: UserDao) {
 
@@ -40,7 +41,8 @@ class UserRepository(private val userDao: UserDao) {
             }
         }.catch { exception ->
             emit(Result.failure(exception))
-        }.flowOn(Dispatchers.IO)
+        }.take(1)
+            .flowOn(Dispatchers.IO)
     }
 
     suspend fun updateUser(user: User): Flow<Result<Unit>> {
