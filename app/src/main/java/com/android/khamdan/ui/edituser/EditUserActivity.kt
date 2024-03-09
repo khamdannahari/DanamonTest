@@ -1,4 +1,4 @@
-package com.android.khamdan.ui.register
+package com.android.khamdan.ui.edituser
 
 import android.os.Bundle
 import android.widget.ArrayAdapter
@@ -6,8 +6,10 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.android.khamdan.R
-import com.android.khamdan.databinding.ActivityRegisterBinding
+import com.android.khamdan.data.user.User
+import com.android.khamdan.databinding.ActivityEditUserBinding
 import com.android.khamdan.util.FlowViewExt.safeCollectEvent
+import com.android.khamdan.util.ParcelableExtraExt.parcelable
 import com.jakewharton.rxbinding4.widget.itemSelections
 import com.jakewharton.rxbinding4.widget.textChanges
 import dagger.hilt.android.AndroidEntryPoint
@@ -19,33 +21,40 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 
 @AndroidEntryPoint
-class RegisterActivity : AppCompatActivity() {
+class EditUserActivity : AppCompatActivity() {
 
-    private val binding: ActivityRegisterBinding by lazy {
-        ActivityRegisterBinding.inflate(layoutInflater)
+    private val binding: ActivityEditUserBinding by lazy {
+        ActivityEditUserBinding.inflate(layoutInflater)
     }
 
-    private val viewModel: RegisterViewModel by viewModels()
+    private val viewModel: EditUserViewModel by viewModels()
 
-    private val state: StateFlow<RegisterState> by lazy { viewModel.registerState }
+    private val state: StateFlow<EditUserState> by lazy { viewModel.editUserState }
     private val disposables = CompositeDisposable()
+
+    private val user by lazy { intent?.parcelable<User>(USER_ARG) ?: User() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         setupActionBar()
+        setInitialData()
         setupRoleSpinner()
         observeErrorMessageEvent()
-        observeSuccessRegisterEvent()
+        observeSuccessUpdateEvent()
         setupFormValidation()
-        setupRegisterButton()
+        setupUpdateButton()
     }
 
     private fun setupActionBar() {
         supportActionBar?.apply {
-            title = getString(R.string.register)
+            title = getString(R.string.edit_user)
             setDisplayHomeAsUpEnabled(true)
         }
+    }
+
+    private fun setInitialData() {
+        viewModel.setUser(user)
     }
 
     private fun setupRoleSpinner() {
@@ -63,6 +72,13 @@ class RegisterActivity : AppCompatActivity() {
         }
 
     private fun setupFormValidation() {
+        val user = viewModel.editUserState.value
+        binding.editTextUsername.setText(user.username)
+        binding.editTextEmail.setText(user.email)
+        binding.editTextPassword.setText(user.password)
+        binding.spinnerRole.setSelection(
+            if (user.role.lowercase() == "normal") 1 else 0
+        )
         val usernameObservable = binding.editTextUsername.textChanges()
             .map { it.toString() }
         val emailObservable = binding.editTextEmail.textChanges()
@@ -78,26 +94,35 @@ class RegisterActivity : AppCompatActivity() {
             passwordObservable,
             roleObservable
         ) { username, email, password, role ->
-            RegisterState(
+            EditUserState(
                 username = username,
                 email = email,
                 password = password,
                 role = role,
             )
-        }.subscribeBy { state -> viewModel.updateState(state) }
+        }.subscribeBy { state ->
+            viewModel.setUser(
+                User(
+                    username = state.username,
+                    email = state.email,
+                    password = state.password,
+                    role = state.role,
+                ),
+            )
+        }
             .addTo(disposables)
     }
 
-    private fun setupRegisterButton() {
-        binding.buttonRegister.setOnClickListener {
-            viewModel.register()
+    private fun setupUpdateButton() {
+        binding.buttonUpdate.setOnClickListener {
+            viewModel.update()
         }
     }
 
-    private fun observeSuccessRegisterEvent() = state
-        .map { it.successRegisterEvent }
+    private fun observeSuccessUpdateEvent() = state
+        .map { it.successUpdateEvent }
         .safeCollectEvent(this) {
-            Toast.makeText(this, R.string.register_success, Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.update_success, Toast.LENGTH_SHORT).show()
             finish()
         }
 
@@ -109,5 +134,9 @@ class RegisterActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         disposables.dispose()
+    }
+
+    companion object {
+        const val USER_ARG = "USER_ARG"
     }
 }

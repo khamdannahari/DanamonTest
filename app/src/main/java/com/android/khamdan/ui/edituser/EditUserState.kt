@@ -1,22 +1,33 @@
-package com.android.khamdan.ui.login
+package com.android.khamdan.ui.edituser
 
 import androidx.core.util.PatternsCompat.EMAIL_ADDRESS
 import com.android.khamdan.data.user.User
 import com.android.khamdan.util.Event
 
-data class LoginState(
+data class EditUserState(
     val currentUser: User? = null,
+    val id: Long = -1,
+    val username: String = "",
     val email: String = "",
     val password: String = "",
+    val role: String = "",
     val errorMessageEvent: Event<String?> = Event(null),
-    val successLoginEvent: Event<Boolean?> = Event(null)
+    val successUpdateEvent: Event<Boolean?> = Event(null)
 ) {
     val isDataValid: Boolean
-        get() = emailError == null &&
-                passwordError == null
+        get() = usernameError == null &&
+                emailError == null &&
+                passwordError == null &&
+                roleError == null
 
     val generatedErrorMessageEvent: Event<String?>
-        get() = Event(emailError ?: passwordError)
+        get() = Event(usernameError ?: emailError ?: passwordError ?: roleError)
+
+    private val usernameError: String?
+        get() = when {
+            username.isBlank() -> "Username cannot be empty"
+            else -> null
+        }
 
     private val emailError: String?
         get() = when {
@@ -30,6 +41,13 @@ data class LoginState(
             password.isBlank() -> "Password cannot be empty"
             password.length < 8 -> "Password must be at least 8 characters"
             else -> null
+        }
+
+    private val roleError: String?
+        get() = if (role.isBlank()) {
+            "Role must be selected"
+        } else {
+            null
         }
 
 }

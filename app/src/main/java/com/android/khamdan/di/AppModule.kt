@@ -2,9 +2,7 @@ package com.android.khamdan.di
 
 import android.app.Application
 import android.content.Context
-import androidx.room.Room
-import com.android.khamdan.data.AppDatabase
-import com.android.khamdan.data.user.UserDao
+import com.android.khamdan.util.CurrentUserPreference
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -20,4 +18,9 @@ object AppModule {
     fun provideApplicationContext(application: Application): Context {
         return application.applicationContext
     }
+
+    @Provides
+    @Singleton
+    fun provideCurrentUserPreference(context: Context): CurrentUserPreference =
+        CurrentUserPreference(context)
 }
