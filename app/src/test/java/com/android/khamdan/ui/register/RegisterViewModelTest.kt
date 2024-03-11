@@ -12,7 +12,7 @@ import org.junit.Before
 import org.junit.Test
 
 @ExperimentalCoroutinesApi
-class HomeViewModelTest {
+class RegisterViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var userRepository: UserRepository
