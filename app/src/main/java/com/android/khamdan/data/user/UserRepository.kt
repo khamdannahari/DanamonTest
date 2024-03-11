@@ -18,27 +18,29 @@ class UserRepository(private val userDao: UserDao) {
     }
 
     fun getUserByEmailAndPassword(email: String, password: String): Flow<User?> {
-        return userDao.getUserByEmailAndPassword(email, password)
+        return userDao.getUserByEmailAndPassword(email, password).take(1)
     }
 
     suspend fun insertUser(user: User): Flow<Result<Unit>> {
         return flow {
-            userDao.getUserByUsername(user.username).collect { existingUserByUsername ->
-                if (existingUserByUsername != null) {
-                    emit(Result.failure(Exception("Username already exists")))
-                    return@collect
-                }
-
-                userDao.getUserByEmail(user.email).collect { existingUserByEmail ->
-                    if (existingUserByEmail != null) {
-                        emit(Result.failure(Exception("Email already exists")))
-                        return@collect
+            userDao.getUserByUsername(user.username)
+                .collect collectUserByUsername@{ existingUserByUsername ->
+                    if (existingUserByUsername != null) {
+                        emit(Result.failure(Exception("Username already exists")))
+                        return@collectUserByUsername
                     }
 
-                    userDao.insertUser(user)
-                    emit(Result.success(Unit))
+                    userDao.getUserByEmail(user.email)
+                        .collect collectUserByEmail@{ existingUserByEmail ->
+                            if (existingUserByEmail != null) {
+                                emit(Result.failure(Exception("Email already exists")))
+                                return@collectUserByEmail
+                            }
+
+                            userDao.insertUser(user)
+                            emit(Result.success(Unit))
+                        }
                 }
-            }
         }.catch { exception ->
             emit(Result.failure(exception))
         }.take(1)
@@ -53,6 +55,6 @@ class UserRepository(private val userDao: UserDao) {
             } catch (exception: Exception) {
                 emit(Result.failure(exception))
             }
-        }
+        }.flowOn(Dispatchers.IO)
     }
 }
